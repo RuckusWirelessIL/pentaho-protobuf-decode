@@ -1,8 +1,8 @@
 pentaho-protobuf-decode
 =======================
 
-Google Protocol Buffers decoder transformation step for Pentaho Kettle. 
-This step allows accessing standalone fields from objects encoded using Protocol Buffers.
+Google Protocol Buffers message decoder for Pentaho Kettle.
+This step allows accessing standalone fields from objects encoded using Google Protocol Buffers.
 
 [![Build Status](https://travis-ci.org/RuckusWirelessIL/pentaho-protobuf-decode.png)](https://travis-ci.org/RuckusWirelessIL/pentaho-protobuf-decode)
 
