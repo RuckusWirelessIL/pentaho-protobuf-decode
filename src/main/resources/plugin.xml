@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin
+	id="ProtobufDecode"
+	iconfile="logo.png"
+	description="Protocol Buffers Decode"
+	tooltip="This plug-in allows accessing standalone fields from object encoded using Google Protocol Buffers"
+	category="Transform"
+	classname="com.ruckuswireless.pentaho.ProtobufDecode">
+	
+	<libraries>
+		<library name="pentaho-protobuf-decode.jar"/>
+		<library name="lib/protobuf-java-2.5.0.jar"/>
+	</libraries>
+    
+	<localized_category>
+		<category locale="en_US">Transform</category>
+	</localized_category>
+	<localized_description>
+		<description locale="en_US">Protocol Buffers Decode</description>
+	</localized_description>
+	<localized_tooltip>
+		<tooltip locale="en_US">This plug-in allows accessing standalone fields from object encoded using Google Protocol Buffers</tooltip>
+	</localized_tooltip>
+</plugin>
