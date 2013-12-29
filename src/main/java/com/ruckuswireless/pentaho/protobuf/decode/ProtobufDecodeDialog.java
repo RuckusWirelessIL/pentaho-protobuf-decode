@@ -1,4 +1,4 @@
-package com.ruckuswireless.pentaho;
+package com.ruckuswireless.pentaho.protobuf.decode;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
@@ -31,6 +31,11 @@ import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
 import org.pentaho.di.ui.trans.dialog.TransPreviewProgressDialog;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
+/**
+ * UI for the Protocol Buffers step
+ * 
+ * @author Michael Spector
+ */
 public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogInterface {
 
 	private ProtobufDecodeMeta meta;

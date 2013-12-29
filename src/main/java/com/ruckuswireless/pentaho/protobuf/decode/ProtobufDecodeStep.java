@@ -1,4 +1,4 @@
-package com.ruckuswireless.pentaho;
+package com.ruckuswireless.pentaho.protobuf.decode;
 
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
@@ -12,6 +12,11 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 
+/**
+ * Main processing unit for the Protocol Buffers Decode step
+ * 
+ * @author Michael Spector
+ */
 public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 
 	public ProtobufDecodeStep(StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta,

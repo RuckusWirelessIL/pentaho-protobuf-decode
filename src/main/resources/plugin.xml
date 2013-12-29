@@ -5,7 +5,7 @@
 	description="Protocol Buffers Decode"
 	tooltip="This plug-in allows accessing standalone fields from object encoded using Google Protocol Buffers"
 	category="Transform"
-	classname="com.ruckuswireless.pentaho.ProtobufDecode">
+	classname="com.ruckuswireless.pentaho.protobuf.decode.ProtobufDecodeStep">
 	
 	<libraries>
 		<library name="pentaho-protobuf-decode.jar"/>

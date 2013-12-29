@@ -1,4 +1,4 @@
-package com.ruckuswireless.pentaho;
+package com.ruckuswireless.pentaho.protobuf.decode;
 
 import org.pentaho.di.i18n.BaseMessages;
 
