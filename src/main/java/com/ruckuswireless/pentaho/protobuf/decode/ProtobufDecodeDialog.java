@@ -1,6 +1,7 @@
 package com.ruckuswireless.pentaho.protobuf.decode;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -19,16 +20,14 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.exception.KettleStepException;
+import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.i18n.BaseMessages;
-import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.TransPreviewFactory;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
-import org.pentaho.di.ui.core.dialog.EnterNumberDialog;
-import org.pentaho.di.ui.core.dialog.EnterTextDialog;
-import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
-import org.pentaho.di.ui.trans.dialog.TransPreviewProgressDialog;
+import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 /**
@@ -39,6 +38,9 @@ import org.pentaho.di.ui.trans.step.BaseStepDialog;
 public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogInterface {
 
 	private ProtobufDecodeMeta meta;
+	private Button wDetectFields;
+	private Listener lsDetectFields;
+	private CCombo wInputField;
 
 	public ProtobufDecodeDialog(Shell parent, Object in, TransMeta tr, String sname) {
 		super(parent, (BaseStepMeta) in, tr, sname);
@@ -99,17 +101,45 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		wStepname.setLayoutData(fdStepname);
 		Control lastControl = wStepname;
 
+		// Input field
+		RowMetaInterface previousFields;
+		try {
+			previousFields = transMeta.getPrevStepFields(stepMeta);
+		} catch (KettleStepException e) {
+			new ErrorDialog(shell, Messages.getString("ProtobufDecodeDialog.ErrorDialog.UnableToGetInputFields.Title"),
+					Messages.getString("ProtobufDecodeDialog.ErrorDialog.UnableToGetInputFields.Message"), e);
+			previousFields = new RowMeta();
+		}
+		Label wlInputField = new Label(shell, SWT.RIGHT);
+		wlInputField.setText(Messages.getString("ProtobufDecodeDialog.InputField.Label"));
+		props.setLook(wlInputField);
+		FormData fdlInputField = new FormData();
+		fdlInputField.top = new FormAttachment(lastControl, margin);
+		fdlInputField.left = new FormAttachment(0, 0);
+		fdlInputField.right = new FormAttachment(middle, -margin);
+		wlInputField.setLayoutData(fdlInputField);
+		wInputField = new CCombo(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		wInputField.setItems(previousFields.getFieldNames());
+		props.setLook(wInputField);
+		wInputField.addModifyListener(lsMod);
+		FormData fdFilename = new FormData();
+		fdFilename.top = new FormAttachment(lastControl, margin);
+		fdFilename.left = new FormAttachment(middle, 0);
+		fdFilename.right = new FormAttachment(100, 0);
+		wInputField.setLayoutData(fdFilename);
+		lastControl = wInputField;
+
 		// XXX: add other fields
 
 		// Buttons
 		wOK = new Button(shell, SWT.PUSH);
 		wOK.setText(BaseMessages.getString("System.Button.OK")); //$NON-NLS-1$
+		wDetectFields = new Button(shell, SWT.PUSH);
+		wDetectFields.setText(Messages.getString("ProtobufDecodeDialog.DetectFields.Button")); //$NON-NLS-1$
 		wCancel = new Button(shell, SWT.PUSH);
 		wCancel.setText(BaseMessages.getString("System.Button.Cancel")); //$NON-NLS-1$
-		wPreview = new Button(shell, SWT.PUSH);
-		wPreview.setText(BaseMessages.getString("System.Button.Preview")); //$NON-NLS-1$
 
-		setButtonPositions(new Button[] { wOK, wPreview, wCancel }, margin, null);
+		setButtonPositions(new Button[] { wOK, wDetectFields, wCancel }, margin, null);
 
 		// Add listeners
 		lsCancel = new Listener() {
@@ -117,19 +147,19 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 				cancel();
 			}
 		};
+		lsDetectFields = new Listener() {
+			public void handleEvent(Event e) {
+				ok();
+			}
+		};
 		lsOK = new Listener() {
 			public void handleEvent(Event e) {
 				ok();
 			}
 		};
-		lsPreview = new Listener() {
-			public void handleEvent(Event e) {
-				preview();
-			}
-		};
 		wCancel.addListener(SWT.Selection, lsCancel);
+		wDetectFields.addListener(SWT.Selection, lsDetectFields);
 		wOK.addListener(SWT.Selection, lsOK);
-		wPreview.addListener(SWT.Selection, lsPreview);
 
 		lsDef = new SelectionAdapter() {
 			public void widgetDefaultSelected(SelectionEvent e) {
@@ -194,40 +224,6 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		dispose();
 	}
 
-	private void preview() {
-		ProtobufDecodeMeta oneMeta = new ProtobufDecodeMeta();
-		setData(oneMeta);
-
-		TransMeta previewMeta = TransPreviewFactory.generatePreviewTransformation(transMeta, oneMeta,
-				wStepname.getText());
-		transMeta.getVariable("Internal.Transformation.Filename.Directory");
-		previewMeta.getVariable("Internal.Transformation.Filename.Directory");
-
-		EnterNumberDialog numberDialog = new EnterNumberDialog(shell, props.getDefaultPreviewSize(),
-				Messages.getString("ProtobufDecodeDialog.PreviewSize.DialogTitle"),
-				Messages.getString("ProtobufDecodeDialog.PreviewSize.DialogMessage"));
-		int previewSize = numberDialog.open();
-		if (previewSize > 0) {
-			TransPreviewProgressDialog progressDialog = new TransPreviewProgressDialog(shell, previewMeta,
-					new String[] { wStepname.getText() }, new int[] { previewSize });
-			progressDialog.open();
-
-			Trans trans = progressDialog.getTrans();
-			String loggingText = progressDialog.getLoggingText();
-
-			if (!progressDialog.isCancelled()) {
-				if (trans.getResult() != null && trans.getResult().getNrErrors() > 0) {
-					EnterTextDialog etd = new EnterTextDialog(shell,
-							Messages.getString("System.Dialog.PreviewError.Title"),
-							Messages.getString("System.Dialog.PreviewError.Message"), loggingText, true);
-					etd.setReadOnly();
-					etd.open();
-				}
-			}
-			PreviewRowsDialog prd = new PreviewRowsDialog(shell, transMeta, SWT.NONE, wStepname.getText(),
-					progressDialog.getPreviewRowsMeta(wStepname.getText()), progressDialog.getPreviewRows(wStepname
-							.getText()), loggingText);
-			prd.open();
-		}
+	private void detectFields() {
 	}
 }

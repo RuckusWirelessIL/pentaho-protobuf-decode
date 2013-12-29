@@ -36,9 +36,27 @@ import com.ruckuswireless.pentaho.protobuf.decode.ProtobufDecoder.ProtobufDecode
  */
 public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterface {
 
+	private String inputField;
 	private FieldDefinition[] fields;
 	private File jarFile;
 	private String rootClass;
+
+	/**
+	 * @return field name from incoming stream, which contains encoded Protocol
+	 *         Buffers message
+	 */
+	public String getInputField() {
+		return inputField;
+	}
+
+	/**
+	 * @param inputField
+	 *            Field name from incoming stream, which contains encoded
+	 *            Protocol Buffers message
+	 */
+	public void setInputField(String inputField) {
+		this.inputField = inputField;
+	}
 
 	/**
 	 * @return fields definitions
