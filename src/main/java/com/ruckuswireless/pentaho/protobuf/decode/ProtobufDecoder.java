@@ -146,30 +146,41 @@ public class ProtobufDecoder {
 	 */
 	public Map<String, Class<?>> guessFields() {
 		Map<String, Class<?>> fieldsMap = new HashMap<String, Class<?>>();
-		guessFields(fieldsMap, rootClass);
+		guessFields(fieldsMap, rootClass, "");
 		return fieldsMap;
 	}
 
-	private void guessFields(Map<String, Class<?>> fieldsMap, Class<?> rootClass) {
-		String prefix = rootClass.getName().substring(this.rootClass.getName().length());
+	private void guessFields(Map<String, Class<?>> fieldsMap, Class<?> rootClass, String prefix) {
 		List<String> fields = new LinkedList<String>();
 		for (Method m : rootClass.getDeclaredMethods()) {
 			String methodName = m.getName();
+			String field = null;
 			if (methodName.startsWith("has")) {
-				fields.add(methodName.substring(3));
+				field = methodName.substring(3);
+			} else if (methodName.startsWith("get") && methodName.endsWith("List") && methodName.length() > 7) {
+				field = methodName.substring(3, methodName.length() - 4);
+			}
+			if (field != null && !field.endsWith("OrBuilder")) {
+				fields.add(field);
 			}
 		}
 
 		String rootPackage = rootClass.getPackage().getName();
 		for (String val : fields) {
 			try {
-				Method getMethod = rootClass.getDeclaredMethod("get" + val, new Class<?>[0]);
+				Method getMethod;
+				try {
+					getMethod = rootClass.getDeclaredMethod("get" + val, new Class<?>[] { int.class });
+				} catch (NoSuchMethodException e) {
+					getMethod = rootClass.getDeclaredMethod("get" + val, new Class<?>[0]);
+				}
+				String name = val.length() > 1 ? Character.toLowerCase(val.charAt(0)) + val.substring(1) : val;
+				String path = prefix.length() > 0 ? prefix + "." + name : name;
+
 				Class<?> returnType = getMethod.getReturnType();
 				if (returnType.getName().startsWith(rootPackage)) {
-					guessFields(fieldsMap, returnType);
+					guessFields(fieldsMap, returnType, path);
 				} else {
-					String name = val.length() > 1 ? Character.toLowerCase(val.charAt(0)) + val.substring(1) : val;
-					String path = prefix.length() > 0 ? prefix + "." + name : name;
 					fieldsMap.put(path, returnType);
 				}
 			} catch (SecurityException e) {

@@ -294,7 +294,7 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		});
 
 		// Set the shell size, based upon previous time...
-		setSize(shell, 400, 350, true);
+		setSize(shell, 650, 500, true);
 
 		getData(meta, true);
 		meta.setChanged(changed);

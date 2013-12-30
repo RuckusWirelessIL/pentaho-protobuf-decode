@@ -2,7 +2,6 @@ package com.ruckuswireless.pentaho.protobuf.decode;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.pentaho.di.core.CheckResultInterface;
 import org.pentaho.di.core.Const;
@@ -26,9 +25,6 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.w3c.dom.Node;
-
-import com.ruckuswireless.pentaho.protobuf.decode.ProtobufDecoder.ProtobufDecoderException;
-import com.ruckuswireless.pentaho.utils.KettleTypesConverter;
 
 /**
  * Protocol Buffers transformation step definitions
@@ -205,23 +201,10 @@ public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterfac
 
 		rowMeta.clear();
 
-		try {
-			ProtobufDecoder protobufDecoder = new ProtobufDecoder(classpath, rootClass);
-			Map<String, Class<?>> detectedFields = protobufDecoder.guessFields();
-
-			for (Entry<String, Class<?>> e : detectedFields.entrySet()) {
-
-				String fieldPath = e.getKey();
-				int i = fieldPath.lastIndexOf('.');
-				String fieldName = i == -1 ? fieldPath : fieldPath.substring(i + 1);
-
-				Class<?> type = e.getValue();
-				ValueMetaInterface valueMeta = new ValueMeta(fieldName, KettleTypesConverter.javaToKettleType(type));
-				valueMeta.setOrigin(origin);
-				rowMeta.addValueMeta(valueMeta);
-			}
-		} catch (ProtobufDecoderException e) {
-			throw new KettleStepException("Error detecting fields", e);
+		for (FieldDefinition field : fields) {
+			ValueMetaInterface valueMeta = new ValueMeta(field.name, field.type);
+			valueMeta.setOrigin(origin);
+			rowMeta.addValueMeta(valueMeta);
 		}
 	}
 }
