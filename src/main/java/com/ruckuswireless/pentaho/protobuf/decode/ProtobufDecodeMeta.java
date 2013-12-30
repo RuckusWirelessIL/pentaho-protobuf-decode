@@ -1,12 +1,11 @@
 package com.ruckuswireless.pentaho.protobuf.decode;
 
-import java.io.File;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.pentaho.di.core.CheckResultInterface;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Counter;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -16,6 +15,7 @@ import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.variables.VariableSpace;
+import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.Trans;
@@ -28,6 +28,7 @@ import org.pentaho.di.trans.step.StepMetaInterface;
 import org.w3c.dom.Node;
 
 import com.ruckuswireless.pentaho.protobuf.decode.ProtobufDecoder.ProtobufDecoderException;
+import com.ruckuswireless.pentaho.utils.KettleTypesConverter;
 
 /**
  * Protocol Buffers transformation step definitions
@@ -37,9 +38,9 @@ import com.ruckuswireless.pentaho.protobuf.decode.ProtobufDecoder.ProtobufDecode
 public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterface {
 
 	private String inputField;
-	private FieldDefinition[] fields;
-	private File jarFile;
+	private String[] classpath;
 	private String rootClass;
+	private FieldDefinition[] fields;
 
 	/**
 	 * @return field name from incoming stream, which contains encoded Protocol
@@ -74,20 +75,18 @@ public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterfac
 	}
 
 	/**
-	 * @return Path of the Jar file containing compiled Protocol Buffer Java
-	 *         classes
+	 * @return Classpath containing compiled Protocol Buffer Java classes
 	 */
-	public File getJarFile() {
-		return jarFile;
+	public String[] getClasspath() {
+		return classpath;
 	}
 
 	/**
-	 * @param jarFile
-	 *            Path of the Jar file containing compiled Protocol Buffer Java
-	 *            classes
+	 * @param classpath
+	 *            Classpath containing compiled Protocol Buffer Java classes
 	 */
-	public void setJarFile(File jarFile) {
-		this.jarFile = jarFile;
+	public void setClasspath(String[] classpath) {
+		this.classpath = classpath;
 	}
 
 	/**
@@ -122,6 +121,32 @@ public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterfac
 			throws KettleXMLException {
 
 		try {
+			inputField = XMLHandler.getTagValue(stepnode, "INPUT_FIELD");
+
+			Node classpathNode = XMLHandler.getSubNode(stepnode, "CLASSPATH");
+			if (classpathNode != null) {
+				int nrfields = XMLHandler.countNodes(classpathNode, "PATH");
+				classpath = new String[nrfields];
+				for (int i = 0; i < nrfields; ++i) {
+					Node pathNode = XMLHandler.getSubNodeByNr(classpathNode, "PATH", i);
+					classpath[i] = XMLHandler.getNodeValue(pathNode);
+				}
+			}
+
+			rootClass = XMLHandler.getTagValue(stepnode, "ROOT_CLASS");
+
+			Node fieldsNode = XMLHandler.getSubNode(stepnode, "FIELDS");
+			if (fieldsNode != null) {
+				int nrfields = XMLHandler.countNodes(fieldsNode, "FIELD");
+				fields = new FieldDefinition[nrfields];
+				for (int i = 0; i < nrfields; i++) {
+					fields[i] = new FieldDefinition();
+					Node fnode = XMLHandler.getSubNodeByNr(fieldsNode, "FIELD", i);
+					fields[i].name = XMLHandler.getTagValue(fnode, "NAME");
+					fields[i].path = XMLHandler.getTagValue(fnode, "PATH");
+					fields[i].type = ValueMeta.getType(XMLHandler.getTagValue(fnode, "TYPE"));
+				}
+			}
 		} catch (Exception e) {
 			throw new KettleXMLException(Messages.getString("ProtobufDecodeMeta.Exception.loadXml"), e);
 		}
@@ -129,6 +154,31 @@ public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterfac
 
 	public String getXML() throws KettleException {
 		StringBuilder retval = new StringBuilder();
+
+		if (inputField != null) {
+			retval.append("    ").append(XMLHandler.addTagValue("INPUT_FIELD", inputField));
+		}
+		if (classpath != null) {
+			retval.append("    ").append(XMLHandler.openTag("CLASSPATH")).append(Const.CR);
+			for (String path : classpath) {
+				retval.append("      " + XMLHandler.addTagValue("PATH", path));
+			}
+			retval.append("    ").append(XMLHandler.closeTag("CLASSPATH")).append(Const.CR);
+		}
+		if (rootClass != null) {
+			retval.append("    ").append(XMLHandler.addTagValue("ROOT_CLASS", rootClass));
+		}
+		if (fields != null) {
+			retval.append("    ").append(XMLHandler.openTag("FIELDS")).append(Const.CR);
+			for (FieldDefinition field : fields) {
+				retval.append("      ").append(XMLHandler.openTag("FIELD")).append(Const.CR);
+				retval.append("        " + XMLHandler.addTagValue("NAME", field.name));
+				retval.append("        " + XMLHandler.addTagValue("PATH", field.path));
+				retval.append("        " + XMLHandler.addTagValue("TYPE", ValueMeta.getTypeDesc(field.type)));
+				retval.append("      ").append(XMLHandler.closeTag("FIELD")).append(Const.CR);
+			}
+			retval.append("    ").append(XMLHandler.closeTag("FIELDS")).append(Const.CR);
+		}
 		return retval.toString();
 	}
 
@@ -156,7 +206,7 @@ public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterfac
 		rowMeta.clear();
 
 		try {
-			ProtobufDecoder protobufDecoder = new ProtobufDecoder(jarFile, rootClass);
+			ProtobufDecoder protobufDecoder = new ProtobufDecoder(classpath, rootClass);
 			Map<String, Class<?>> detectedFields = protobufDecoder.guessFields();
 
 			for (Entry<String, Class<?>> e : detectedFields.entrySet()) {
@@ -166,24 +216,7 @@ public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterfac
 				String fieldName = i == -1 ? fieldPath : fieldPath.substring(i + 1);
 
 				Class<?> type = e.getValue();
-				int kettleType;
-				if (type == double.class || type == float.class) {
-					kettleType = ValueMetaInterface.TYPE_NUMBER;
-				} else if (type == String.class) {
-					kettleType = ValueMetaInterface.TYPE_STRING;
-				} else if (type == long.class || type == int.class) {
-					kettleType = ValueMetaInterface.TYPE_INTEGER;
-				} else if (type == Date.class) {
-					kettleType = ValueMetaInterface.TYPE_DATE;
-				} else if (type == boolean.class) {
-					kettleType = ValueMetaInterface.TYPE_BOOLEAN;
-				} else if (type == byte[].class) {
-					kettleType = ValueMetaInterface.TYPE_BINARY;
-				} else {
-					kettleType = ValueMetaInterface.TYPE_NONE;
-				}
-
-				ValueMetaInterface valueMeta = new ValueMeta(fieldName, kettleType);
+				ValueMetaInterface valueMeta = new ValueMeta(fieldName, KettleTypesConverter.javaToKettleType(type));
 				valueMeta.setOrigin(origin);
 				rowMeta.addValueMeta(valueMeta);
 			}

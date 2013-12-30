@@ -25,11 +25,14 @@ public class ProtobufDecoder {
 	private Class<?> rootClass;
 	private Method rootParseFromMethod;
 
-	public ProtobufDecoder(File jarFile, String rootClass) throws ProtobufDecoderException {
+	public ProtobufDecoder(String[] classpath, String rootClass) throws ProtobufDecoderException {
 		URLClassLoader classLoader;
 		try {
-			classLoader = new URLClassLoader(new URL[] { jarFile.toURI().toURL() }, Thread.currentThread()
-					.getContextClassLoader());
+			URL[] url = new URL[classpath.length];
+			for (int i = 0; i < classpath.length; ++i) {
+				url[i] = new File(classpath[i]).toURI().toURL();
+			}
+			classLoader = new URLClassLoader(url, getClass().getClassLoader());
 		} catch (MalformedURLException e) {
 			throw new ProtobufDecoderException(e);
 		}
@@ -41,8 +44,7 @@ public class ProtobufDecoder {
 		}
 
 		try {
-			this.rootParseFromMethod = rootClass.getClass().getDeclaredMethod("parseFrom",
-					new Class<?>[] { byte[].class });
+			this.rootParseFromMethod = this.rootClass.getDeclaredMethod("parseFrom", new Class<?>[] { byte[].class });
 		} catch (SecurityException e) {
 			throw new ProtobufDecoderException(e);
 		} catch (NoSuchMethodException e) {
@@ -152,11 +154,9 @@ public class ProtobufDecoder {
 		String prefix = rootClass.getName().substring(this.rootClass.getName().length());
 		List<String> fields = new LinkedList<String>();
 		for (Method m : rootClass.getDeclaredMethods()) {
-			if (m.isAccessible()) {
-				String methodName = m.getName();
-				if (methodName.startsWith("has")) {
-					fields.add(methodName.substring(3));
-				}
+			String methodName = m.getName();
+			if (methodName.startsWith("has")) {
+				fields.add(methodName.substring(3));
 			}
 		}
 
