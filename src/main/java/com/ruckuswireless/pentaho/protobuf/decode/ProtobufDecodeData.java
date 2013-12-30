@@ -11,6 +11,7 @@ import org.pentaho.di.trans.step.StepDataInterface;
  */
 public class ProtobufDecodeData extends BaseStepData implements StepDataInterface {
 
+	ProtobufDecoder decoder;
 	RowMetaInterface outputRowMeta;
 	boolean canceled;
 	int processed;

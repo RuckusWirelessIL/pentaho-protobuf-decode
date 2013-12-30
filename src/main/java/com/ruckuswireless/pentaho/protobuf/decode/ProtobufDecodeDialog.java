@@ -330,6 +330,20 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		wClasspath.setText(cpBuf.toString());
 		wRootClass.setText(Const.NVL(consumerMeta.getRootClass(), ""));
 
+		FieldDefinition[] fields = meta.getFields();
+		if (fields != null) {
+			for (FieldDefinition field : fields) {
+				TableItem item = new TableItem(wFields.table, SWT.NONE);
+				int colnr = 1;
+				item.setText(colnr++, Const.NVL(field.name, ""));
+				item.setText(colnr++, Const.NVL(field.path, ""));
+				item.setText(colnr++, ValueMeta.getTypeDesc(field.type));
+			}
+		}
+		wFields.removeEmptyRows();
+		wFields.setRowNums();
+		wFields.optWidth(true);
+
 		wStepname.selectAll();
 	}
 
@@ -346,6 +360,22 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		consumerMeta.setInputField(wInputField.getText());
 		consumerMeta.setClasspath(wClasspath.getText().trim().split(File.pathSeparator));
 		consumerMeta.setRootClass(wRootClass.getText());
+
+		int nrNonEmptyFields = wFields.nrNonEmpty();
+		FieldDefinition[] fields = new FieldDefinition[nrNonEmptyFields];
+		for (int i = 0; i < nrNonEmptyFields; i++) {
+			TableItem item = wFields.getNonEmpty(i);
+			fields[i] = new FieldDefinition();
+			int colnr = 1;
+			fields[i].name = item.getText(colnr++);
+			fields[i].path = item.getText(colnr++);
+			fields[i].type = ValueMeta.getType(item.getText(colnr++));
+		}
+		consumerMeta.setFields(fields);
+		wFields.removeEmptyRows();
+		wFields.setRowNums();
+		wFields.optWidth(true);
+
 		consumerMeta.setChanged();
 	}
 

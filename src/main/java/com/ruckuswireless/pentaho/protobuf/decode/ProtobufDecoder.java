@@ -169,7 +169,8 @@ public class ProtobufDecoder {
 					guessFields(fieldsMap, returnType);
 				} else {
 					String name = val.length() > 1 ? Character.toLowerCase(val.charAt(0)) + val.substring(1) : val;
-					fieldsMap.put(prefix + "." + name, returnType);
+					String path = prefix.length() > 0 ? prefix + "." + name : name;
+					fieldsMap.put(path, returnType);
 				}
 			} catch (SecurityException e) {
 			} catch (NoSuchMethodException e) {

@@ -12,6 +12,8 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 
+import com.ruckuswireless.pentaho.protobuf.decode.ProtobufDecoder.ProtobufDecoderException;
+
 /**
  * Main processing unit for the Protocol Buffers Decode step
  * 
@@ -29,16 +31,13 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 
 		ProtobufDecodeMeta meta = (ProtobufDecodeMeta) smi;
 		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
-
+		try {
+			data.decoder = new ProtobufDecoder(meta.getClasspath(), meta.getRootClass());
+		} catch (ProtobufDecoderException e) {
+			logError(Messages.getString("ProtobufDecodeStep.Init.Error", getStepname()), e);
+			return false;
+		}
 		return true;
-	}
-
-	public void dispose(StepMetaInterface smi, StepDataInterface sdi) {
-
-		ProtobufDecodeMeta meta = (ProtobufDecodeMeta) smi;
-		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
-
-		super.dispose(smi, sdi);
 	}
 
 	public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
@@ -48,7 +47,7 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 			return false;
 		}
 
-		ProtobufDecodeMeta meta = (ProtobufDecodeMeta) smi;
+		// ProtobufDecodeMeta meta = (ProtobufDecodeMeta) smi;
 		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
 
 		if (first) {
