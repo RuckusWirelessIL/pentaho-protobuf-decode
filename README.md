@@ -11,7 +11,7 @@ This step allows accessing standalone fields from objects encoded using Google P
 
 Following is the example of live decoding of Protocol Buffers message transfered via Apache Kafka:
 
-![Live decoding of Protocol Buffers message transfered via Apache Kafka](https://raw.github.com/RuckusWirelessIL/pentaho-pentaho-protobuf-decode/master/doc/example.png)
+![Live decoding of Protocol Buffers message transfered via Apache Kafka](https://raw.github.com/RuckusWirelessIL/pentaho-protobuf-decode/master/doc/example.png)
 
 
 ### Building ###
