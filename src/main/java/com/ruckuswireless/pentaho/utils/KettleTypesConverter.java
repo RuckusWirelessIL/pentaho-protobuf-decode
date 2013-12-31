@@ -13,6 +13,20 @@ import org.pentaho.di.core.row.ValueMetaInterface;
  */
 public class KettleTypesConverter {
 
+	public static Object kettleCast(Object value) {
+		Class<?> c = value.getClass();
+		if (c == Integer.class || c == int.class) {
+			return ((Integer) value).longValue();
+		}
+		if (c == Float.class || c == float.class) {
+			return ((Float) value).doubleValue();
+		}
+		if (c == BigInteger.class) {
+			return new BigDecimal((char[]) value);
+		}
+		return value;
+	}
+
 	public static int javaToKettleType(Class<?> c) {
 		if (c == String.class) {
 			return ValueMetaInterface.TYPE_STRING;

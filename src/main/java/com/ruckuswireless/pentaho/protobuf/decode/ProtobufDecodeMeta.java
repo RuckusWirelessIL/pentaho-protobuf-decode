@@ -199,8 +199,6 @@ public class ProtobufDecodeMeta extends BaseStepMeta implements StepMetaInterfac
 	public void getFields(RowMetaInterface rowMeta, String origin, RowMetaInterface[] info, StepMeta nextStep,
 			VariableSpace space) throws KettleStepException {
 
-		rowMeta.clear();
-
 		for (FieldDefinition field : fields) {
 			ValueMetaInterface valueMeta = new ValueMeta(field.name, field.type);
 			valueMeta.setOrigin(origin);

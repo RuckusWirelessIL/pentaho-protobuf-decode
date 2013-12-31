@@ -14,6 +14,7 @@ import java.util.Map;
 
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
+import com.ruckuswireless.pentaho.utils.KettleTypesConverter;
 
 /**
  * Protocol Buffers messages decoder
@@ -83,10 +84,11 @@ public class ProtobufDecoder {
 	 * @return values
 	 * @throws ProtobufDecoderException
 	 */
-	public Object[] decode(byte[] message, FieldDefinition[] fields) throws ProtobufDecoderException {
+	public List<Object[]> decode(byte[] message, FieldDefinition[] fields) throws ProtobufDecoderException {
 		LinkedList<Object[]> result = new LinkedList<Object[]>();
+		result.add(new Object[fields.length]);
 		buildRows(decode(message), fields, result);
-		return result.toArray();
+		return result;
 	}
 
 	protected void buildRows(Message message, FieldDefinition[] fields, LinkedList<Object[]> result)
@@ -98,15 +100,17 @@ public class ProtobufDecoder {
 			List<Object> values = new ArrayList<Object>();
 			getFieldValues(message, field.path, values);
 
-			for (Object val : values) {
-				Object[] lastRow = result.getLast();
-				for (int j = 0; j < values.size() - 1; ++j) {
+			Object[] lastRow = result.getLast();
+			if (values.size() > 0) {
+				lastRow[i] = values.get(0);
+			}
+			if (values.size() > 1) {
+				// normalize:
+				for (int j = 1; j < values.size(); ++j) {
 					Object[] clone = new Object[lastRow.length];
 					System.arraycopy(lastRow, 0, clone, 0, lastRow.length);
+					clone[i] = values.get(j);
 					result.add(clone);
-				}
-				for (Object[] res : result) {
-					res[i] = val;
 				}
 			}
 		}
@@ -114,11 +118,14 @@ public class ProtobufDecoder {
 
 	protected void getFieldValues(Object root, String fieldPath, List<Object> values) throws ProtobufDecoderException {
 		int i = fieldPath.indexOf('.');
+		String fieldName, nextPath;
 		if (i == -1) {
-			i = fieldPath.length();
+			fieldName = fieldPath;
+			nextPath = "";
+		} else {
+			fieldName = fieldPath.substring(0, i);
+			nextPath = fieldPath.substring(i + 1);
 		}
-		String fieldName = fieldPath.substring(0, i);
-		fieldPath = fieldPath.substring(i);
 
 		if (root instanceof Message) {
 			if (fieldName.length() == 0) {
@@ -126,7 +133,7 @@ public class ProtobufDecoder {
 			}
 			Message message = (Message) root;
 			FieldDescriptor fieldDesc = message.getDescriptorForType().findFieldByName(fieldName);
-			getFieldValues(message.getField(fieldDesc), fieldPath, values);
+			getFieldValues(message.getField(fieldDesc), nextPath, values);
 
 		} else if (root instanceof List<?>) {
 			List<?> valuesList = (List<?>) root;
@@ -134,10 +141,10 @@ public class ProtobufDecoder {
 				getFieldValues(v, fieldPath, values);
 			}
 		} else { // primitive
-			if (fieldPath.length() > 0) {
+			if (nextPath.length() > 0) {
 				throw new ProtobufDecoderException("Field path leads through primitive value!");
 			}
-			values.add(root);
+			values.add(KettleTypesConverter.kettleCast(root));
 		}
 	}
 
