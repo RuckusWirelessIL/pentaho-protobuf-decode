@@ -4,13 +4,16 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.ruckuswireless</groupId>
 	<artifactId>pentaho-protobuf-decode</artifactId>
-	<version>1.0.0</version>
+	<version>TRUNK-SNAPSHOT</version>
 	<name>Google Protocol Buffers Decode Plug-In for Pentaho</name>
 
 	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<kettle.version>4.4.1-GA</kettle.version>
+		<buildId>${maven.build.timestamp}</buildId>
+		<maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
 	</properties>
 
 	<repositories>
@@ -65,6 +68,7 @@
 				<excludes>
 					<exclude>logo.png</exclude>
 					<exclude>plugin.xml</exclude>
+					<exclude>version.xml</exclude>
 				</excludes>
 			</resource>
 			<resource>
@@ -72,7 +76,9 @@
 				<includes>
 					<include>logo.png</include>
 					<include>plugin.xml</include>
+					<include>version.xml</include>
 				</includes>
+				<filtering>true</filtering>
 				<targetPath>${project.build.directory}</targetPath>
 			</resource>
 		</resources>
