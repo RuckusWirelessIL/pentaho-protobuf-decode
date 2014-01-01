@@ -14,12 +14,14 @@ Following is the example of live decoding of Protocol Buffers message transfered
 ![Live decoding of Protocol Buffers message transfered via Apache Kafka](https://raw.github.com/RuckusWirelessIL/pentaho-protobuf-decode/master/doc/example.png)
 
 
-### Building ###
+### Installation ###
+
+1. Download ```pentaho-protobuf-decode``` Zip archive from [latest release page](https://github.com/RuckusWirelessIL/pentaho-protobuf-decode/releases/latest).
+2. Extract downloaded archive into *plugins/steps* directory of your Pentaho Data Integration distribution.
+
+
+### Building from source code ###
 
 ```
 mvn clean package
 ```
-
-### Installation ###
-
-Extract ```target/pentaho-protobuf-decode-1.0.0.zip``` in *plugins/steps* directory of your Pentaho Data Integration distribution.
