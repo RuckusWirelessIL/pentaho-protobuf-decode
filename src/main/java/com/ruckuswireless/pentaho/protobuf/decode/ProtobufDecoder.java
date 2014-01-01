@@ -8,9 +8,12 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
@@ -23,10 +26,14 @@ import com.ruckuswireless.pentaho.utils.KettleTypesConverter;
  */
 public class ProtobufDecoder {
 
+	private final Object EMPTY = new Object();
 	private Class<?> rootClass;
 	private Method rootParseFromMethod;
+	private LinkedHashMap<String, Integer> paths;
+	private FieldDefinition[] fields;
 
-	public ProtobufDecoder(String[] classpath, String rootClass) throws ProtobufDecoderException {
+	public ProtobufDecoder(String[] classpath, String rootClass, FieldDefinition[] fields)
+			throws ProtobufDecoderException {
 		URLClassLoader classLoader;
 		try {
 			URL[] url = new URL[classpath.length];
@@ -51,25 +58,13 @@ public class ProtobufDecoder {
 		} catch (NoSuchMethodException e) {
 			throw new ProtobufDecoderException("Can't setup Protocol Buffers decoder", e);
 		}
-	}
 
-	/**
-	 * Parses binary message
-	 * 
-	 * @param message
-	 *            Encoded message
-	 * @return decoded Protocol Buffers message
-	 * @throws ProtobufDecoderException
-	 */
-	protected Message decode(byte[] message) throws ProtobufDecoderException {
-		try {
-			return (Message) rootParseFromMethod.invoke(null, message);
-		} catch (IllegalArgumentException e) {
-			throw new ProtobufDecoderException(e);
-		} catch (IllegalAccessException e) {
-			throw new ProtobufDecoderException(e);
-		} catch (InvocationTargetException e) {
-			throw new ProtobufDecoderException("Can't call to " + rootParseFromMethod, e.getCause());
+		if (fields != null) {
+			this.paths = new LinkedHashMap<String, Integer>();
+			for (int i = 0; i < fields.length; ++i) {
+				this.paths.put(fields[i].path, Integer.valueOf(i));
+			}
+			this.fields = fields;
 		}
 	}
 
@@ -79,72 +74,124 @@ public class ProtobufDecoder {
 	 * 
 	 * @param message
 	 *            Encoded Protocol Buffers message
-	 * @param fields
-	 *            Definitions of fields to return
-	 * @return values
+	 * @return rows list
 	 * @throws ProtobufDecoderException
 	 */
-	public List<Object[]> decode(byte[] message, FieldDefinition[] fields) throws ProtobufDecoderException {
+	public List<Object[]> decode(byte[] message) throws ProtobufDecoderException {
+		Message decodedMessage;
+		try {
+			decodedMessage = (Message) rootParseFromMethod.invoke(null, message);
+		} catch (IllegalArgumentException e) {
+			throw new ProtobufDecoderException(e);
+		} catch (IllegalAccessException e) {
+			throw new ProtobufDecoderException(e);
+		} catch (InvocationTargetException e) {
+			throw new ProtobufDecoderException("Can't call to " + rootParseFromMethod, e.getCause());
+		}
+
+		ValueNode root = buildValuesTree(decodedMessage, "");
 		LinkedList<Object[]> result = new LinkedList<Object[]>();
-		result.add(new Object[fields.length]);
-		buildRows(decode(message), fields, result);
+		if (root != null) {
+			produceRows(root, new LinkedList<Object[]>(), result, new HashSet<Integer>());
+		}
 		return result;
 	}
 
-	protected void buildRows(Message message, FieldDefinition[] fields, LinkedList<Object[]> result)
-			throws ProtobufDecoderException {
-
-		for (int i = 0; i < fields.length; ++i) {
-			FieldDefinition field = fields[i];
-
-			List<Object> values = new ArrayList<Object>();
-			getFieldValues(message, field.path, values);
-
-			Object[] lastRow = result.getLast();
-			if (values.size() > 0) {
-				lastRow[i] = values.get(0);
-			}
-			if (values.size() > 1) {
-				// normalize:
-				for (int j = 1; j < values.size(); ++j) {
-					Object[] clone = new Object[lastRow.length];
-					System.arraycopy(lastRow, 0, clone, 0, lastRow.length);
-					clone[i] = values.get(j);
-					result.add(clone);
-				}
-			}
-		}
+	protected static class ValueNode {
+		Integer fieldIdx;
+		Object value;
+		List<ValueNode> children;
 	}
 
-	protected void getFieldValues(Object root, String fieldPath, List<Object> values) throws ProtobufDecoderException {
-		int i = fieldPath.indexOf('.');
-		String fieldName, nextPath;
-		if (i == -1) {
-			fieldName = fieldPath;
-			nextPath = "";
-		} else {
-			fieldName = fieldPath.substring(0, i);
-			nextPath = fieldPath.substring(i + 1);
-		}
+	protected ValueNode buildValuesTree(Object root, String currentPath) throws ProtobufDecoderException {
 
 		if (root instanceof Message) {
-			if (fieldName.length() == 0) {
-				throw new ProtobufDecoderException("Field path doesn't lead to a primitive value!");
-			}
 			Message message = (Message) root;
-			FieldDescriptor fieldDesc = message.getDescriptorForType().findFieldByName(fieldName);
-			getFieldValues(message.getField(fieldDesc), nextPath, values);
+			List<FieldDescriptor> fields = message.getDescriptorForType().getFields();
+			List<ValueNode> ch = new ArrayList<ValueNode>(fields.size());
+			for (FieldDescriptor field : fields) {
+				ValueNode n = buildValuesTree(message.getField(field), currentPath.length() > 0 ? currentPath + "."
+						+ field.getName() : field.getName());
+				if (n != null) {
+					ch.add(n);
+				}
+			}
+			if (ch.size() > 0) {
+				ValueNode node = new ValueNode();
+				node.children = ch;
+				return node;
+			}
+			return null;
+		}
 
-		} else if (root instanceof List<?>) {
-			List<?> valuesList = (List<?>) root;
-			for (Object v : valuesList) {
-				getFieldValues(v, fieldPath, values);
+		if (root instanceof List<?>) {
+			List<?> list = (List<?>) root;
+			List<ValueNode> ch = new ArrayList<ValueNode>(list.size());
+			for (Object v : list) {
+				ValueNode n = buildValuesTree(v, currentPath);
+				if (n != null) {
+					ch.add(n);
+				}
 			}
-		} else { // primitive
-			if (nextPath.length() > 0) {
-				throw new ProtobufDecoderException("Field path leads through primitive value!");
+			if (ch.size() > 0) {
+				ValueNode node = new ValueNode();
+				node.children = ch;
+				return node;
 			}
-			values.add(KettleTypesConverter.kettleCast(root));
+			return null;
+		}
+
+		// primitive
+		Integer fieldIdx = paths.get(currentPath);
+		if (fieldIdx != null) {
+			ValueNode node = new ValueNode();
+			node.fieldIdx = fieldIdx;
+			node.value = KettleTypesConverter.kettleCast(root);
+			return node;
+		}
+		return null;
+	}
+
+	protected void produceRows(ValueNode root, LinkedList<Object[]> rowsPool, LinkedList<Object[]> result,
+			Set<Integer> processedFields) {
+
+		if (root.fieldIdx != null) { // Field value (leaf)
+			int fieldIdx = root.fieldIdx.intValue();
+			if (rowsPool.size() == 0) {
+				// Create new row, and push it to the rows pool
+				Object[] row = new Object[fields.length];
+				for (int i = 0; i < row.length; ++i) {
+					row[i] = EMPTY;
+				}
+				row[fieldIdx] = root.value;
+				rowsPool.add(row);
+
+			} else {
+				List<Object[]> newRows = new LinkedList<Object[]>();
+				for (Object[] row : rowsPool) {
+					if (row[fieldIdx] == EMPTY) {
+						row[fieldIdx] = root.value;
+					} else {
+						// Clone the row:
+						Object[] newRow = new Object[row.length];
+						System.arraycopy(row, 0, newRow, 0, row.length);
+						newRow[fieldIdx] = root.value;
+						newRows.add(newRow);
+					}
+				}
+				rowsPool.addAll(newRows);
+			}
+			processedFields.add(root.fieldIdx);
+		} else {
+			for (ValueNode child : root.children) {
+				produceRows(child, rowsPool, result, processedFields);
+			}
+			if (processedFields.size() == fields.length) {
+				// Move all created rows from the pool to the result
+				result.addAll(rowsPool);
+				rowsPool.clear();
+				processedFields.clear();
+			}
 		}
 	}
 
@@ -210,5 +257,9 @@ public class ProtobufDecoder {
 		public ProtobufDecoderException(Throwable cause) {
 			super(cause);
 		}
+	}
+
+	public static interface RowProduceListener {
+		void onNewRow(Object[] row);
 	}
 }

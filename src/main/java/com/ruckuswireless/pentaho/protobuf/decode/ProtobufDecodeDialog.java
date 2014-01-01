@@ -391,7 +391,7 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 	private void detectFields() {
 		try {
 			ProtobufDecoder protobufDecoder = new ProtobufDecoder(
-					wClasspath.getText().trim().split(File.pathSeparator), wRootClass.getText());
+					wClasspath.getText().trim().split(File.pathSeparator), wRootClass.getText(), null);
 			Map<String, Class<?>> fields = protobufDecoder.guessFields();
 			RowMeta rowMeta = new RowMeta();
 			for (Entry<String, Class<?>> e : fields.entrySet()) {

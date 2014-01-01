@@ -34,7 +34,7 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 		ProtobufDecodeMeta meta = (ProtobufDecodeMeta) smi;
 		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
 		try {
-			data.decoder = new ProtobufDecoder(meta.getClasspath(), meta.getRootClass());
+			data.decoder = new ProtobufDecoder(meta.getClasspath(), meta.getRootClass(), meta.getFields());
 		} catch (ProtobufDecoderException e) {
 			logError(Messages.getString("ProtobufDecodeStep.Init.Error", getStepname()), e);
 			return false;
@@ -86,7 +86,7 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 		try {
 			byte[] message = data.inputFieldMeta.getBinary(r[data.inputFieldNr]);
 			try {
-				List<Object[]> decodedData = data.decoder.decode(message, meta.getFields());
+				List<Object[]> decodedData = data.decoder.decode(message);
 				for (Object[] d : decodedData) {
 					r = RowDataUtil.addRowData(r, inputRowMeta.size(), d);
 					putRow(data.outputRowMeta, r);

@@ -14,6 +14,9 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 public class KettleTypesConverter {
 
 	public static Object kettleCast(Object value) {
+		if (value == null) {
+			return value;
+		}
 		Class<?> c = value.getClass();
 		if (c == Integer.class || c == int.class) {
 			return ((Integer) value).longValue();
