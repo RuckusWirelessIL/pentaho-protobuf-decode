@@ -50,7 +50,8 @@ import com.ruckuswireless.pentaho.utils.KettleTypesConverter;
  * 
  * @author Michael Spector
  */
-public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogInterface {
+public class ProtobufDecodeDialog extends BaseStepDialog implements
+		StepDialogInterface {
 
 	private ProtobufDecodeMeta meta;
 	private Button wDetectFields;
@@ -61,17 +62,20 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 	private TextVar wRootClass;
 	private TableView wFields;
 
-	public ProtobufDecodeDialog(Shell parent, Object in, TransMeta tr, String sname) {
+	public ProtobufDecodeDialog(Shell parent, Object in, TransMeta tr,
+			String sname) {
 		super(parent, (BaseStepMeta) in, tr, sname);
 		meta = (ProtobufDecodeMeta) in;
 	}
 
-	public ProtobufDecodeDialog(Shell parent, BaseStepMeta baseStepMeta, TransMeta transMeta, String stepname) {
+	public ProtobufDecodeDialog(Shell parent, BaseStepMeta baseStepMeta,
+			TransMeta transMeta, String stepname) {
 		super(parent, baseStepMeta, transMeta, stepname);
 		meta = (ProtobufDecodeMeta) baseStepMeta;
 	}
 
-	public ProtobufDecodeDialog(Shell parent, int nr, BaseStepMeta in, TransMeta tr) {
+	public ProtobufDecodeDialog(Shell parent, int nr, BaseStepMeta in,
+			TransMeta tr) {
 		super(parent, nr, in, tr);
 		meta = (ProtobufDecodeMeta) in;
 	}
@@ -80,7 +84,8 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		Shell parent = getParent();
 		Display display = parent.getDisplay();
 
-		shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MIN | SWT.MAX);
+		shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MIN
+				| SWT.MAX);
 		props.setLook(shell);
 		setShellImage(shell, meta);
 
@@ -103,7 +108,8 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 
 		// Step name
 		wlStepname = new Label(shell, SWT.RIGHT);
-		wlStepname.setText(Messages.getString("ProtobufDecodeDialog.StepName.Label"));
+		wlStepname.setText(Messages
+				.getString("ProtobufDecodeDialog.StepName.Label"));
 		props.setLook(wlStepname);
 		fdlStepname = new FormData();
 		fdlStepname.left = new FormAttachment(0, 0);
@@ -125,12 +131,16 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		try {
 			previousFields = transMeta.getPrevStepFields(stepMeta);
 		} catch (KettleStepException e) {
-			new ErrorDialog(shell, BaseMessages.getString("System.Dialog.Error.Title"),
-					Messages.getString("ProtobufDecodeDialog.ErrorDialog.UnableToGetInputFields.Message"), e);
+			new ErrorDialog(
+					shell,
+					BaseMessages.getString("System.Dialog.Error.Title"),
+					Messages.getString("ProtobufDecodeDialog.ErrorDialog.UnableToGetInputFields.Message"),
+					e);
 			previousFields = new RowMeta();
 		}
 		Label wlInputField = new Label(shell, SWT.RIGHT);
-		wlInputField.setText(Messages.getString("ProtobufDecodeDialog.InputField.Label"));
+		wlInputField.setText(Messages
+				.getString("ProtobufDecodeDialog.InputField.Label"));
 		props.setLook(wlInputField);
 		FormData fdlInputField = new FormData();
 		fdlInputField.top = new FormAttachment(lastControl, margin);
@@ -154,8 +164,10 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		//
 		wbbClasspath = new Button(shell, SWT.PUSH | SWT.CENTER);
 		props.setLook(wbbClasspath);
-		wbbClasspath.setText(Messages.getString("ProtobufDecodeDialog.Classpath.Browse.Label"));
-		wbbClasspath.setToolTipText(Messages.getString("ProtobufDecodeDialog.Classpath.Browse.Label"));
+		wbbClasspath.setText(Messages
+				.getString("ProtobufDecodeDialog.Classpath.Browse.Label"));
+		wbbClasspath.setToolTipText(Messages
+				.getString("ProtobufDecodeDialog.Classpath.Browse.Label"));
 		FormData fdbFilename = new FormData();
 		fdbFilename.top = new FormAttachment(lastControl, margin);
 		fdbFilename.right = new FormAttachment(100, 0);
@@ -163,14 +175,16 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		// The field itself...
 		//
 		Label wlClasspath = new Label(shell, SWT.RIGHT);
-		wlClasspath.setText(Messages.getString("ProtobufDecodeDialog.Classpath.Label"));
+		wlClasspath.setText(Messages
+				.getString("ProtobufDecodeDialog.Classpath.Label"));
 		props.setLook(wlClasspath);
 		FormData fdlFilename = new FormData();
 		fdlFilename.top = new FormAttachment(lastControl, margin);
 		fdlFilename.left = new FormAttachment(0, 0);
 		fdlFilename.right = new FormAttachment(middle, -margin);
 		wlClasspath.setLayoutData(fdlFilename);
-		wClasspath = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		wClasspath = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT
+				| SWT.BORDER);
 		props.setLook(wClasspath);
 		wClasspath.addModifyListener(lsMod);
 		FormData fdClasspath = new FormData();
@@ -182,14 +196,16 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 
 		// Topic name
 		Label wlRootClass = new Label(shell, SWT.RIGHT);
-		wlRootClass.setText(Messages.getString("ProtobufDecodeDialog.RootClass.Label"));
+		wlRootClass.setText(Messages
+				.getString("ProtobufDecodeDialog.RootClass.Label"));
 		props.setLook(wlRootClass);
 		FormData fdlRootClass = new FormData();
 		fdlRootClass.top = new FormAttachment(lastControl, margin);
 		fdlRootClass.left = new FormAttachment(0, 0);
 		fdlRootClass.right = new FormAttachment(middle, -margin);
 		wlRootClass.setLayoutData(fdlRootClass);
-		wRootClass = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		wRootClass = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT
+				| SWT.BORDER);
 		props.setLook(wRootClass);
 		wRootClass.addModifyListener(lsMod);
 		FormData fdTopicName = new FormData();
@@ -203,13 +219,15 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		wOK = new Button(shell, SWT.PUSH);
 		wOK.setText(BaseMessages.getString("System.Button.OK")); //$NON-NLS-1$
 		wDetectFields = new Button(shell, SWT.PUSH);
-		wDetectFields.setText(Messages.getString("ProtobufDecodeDialog.DetectFields.Button")); //$NON-NLS-1$
+		wDetectFields.setText(Messages
+				.getString("ProtobufDecodeDialog.DetectFields.Button")); //$NON-NLS-1$
 		wCancel = new Button(shell, SWT.PUSH);
 		wCancel.setText(BaseMessages.getString("System.Button.Cancel")); //$NON-NLS-1$
 
 		// Fields
 		Label wlFields = new Label(shell, SWT.NONE);
-		wlFields.setText(Messages.getString("ProtobufDecodeDialog.Fields.Label")); //$NON-NLS-1$
+		wlFields.setText(Messages
+				.getString("ProtobufDecodeDialog.Fields.Label")); //$NON-NLS-1$
 		props.setLook(wlFields);
 		FormData fdlFields = new FormData();
 		fdlFields.left = new FormAttachment(0, 0);
@@ -224,8 +242,10 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		ciFields[2] = new ColumnInfo(
 				Messages.getString("ProtobufDecodeDialog.ColumnInfo.Type"), ColumnInfo.COLUMN_TYPE_CCOMBO, ValueMeta.getTypes()); //$NON-NLS-1$
 
-		wFields = new TableView(transMeta, shell, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL
-				| SWT.H_SCROLL, ciFields, meta.getFields() == null ? 1 : meta.getFields().length, lsMod, props);
+		wFields = new TableView(transMeta, shell, SWT.BORDER
+				| SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL,
+				ciFields, meta.getFields() == null ? 1
+						: meta.getFields().length, lsMod, props);
 
 		FormData fdFields = new FormData();
 		fdFields.left = new FormAttachment(0, 0);
@@ -234,7 +254,8 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 		fdFields.bottom = new FormAttachment(wOK, -margin);
 		wFields.setLayoutData(fdFields);
 
-		setButtonPositions(new Button[] { wOK, wDetectFields, wCancel }, margin, null);
+		setButtonPositions(new Button[] { wOK, wDetectFields, wCancel },
+				margin, null);
 
 		// Add listeners
 		lsCancel = new Listener() {
@@ -272,15 +293,19 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 				FileDialog dialog = new FileDialog(shell, SWT.OPEN);
 				dialog.setFilterExtensions(new String[] { "*.jar", "*" });
 				if (wClasspath.getText() != null) {
-					String fname = transMeta.environmentSubstitute(wClasspath.getText());
+					String fname = transMeta.environmentSubstitute(wClasspath
+							.getText());
 					dialog.setFileName(fname);
 				}
 
-				dialog.setFilterNames(new String[] { Messages.getString("ProtobufDecodeDialog.FileType.Classpaths"),
+				dialog.setFilterNames(new String[] {
+						Messages.getString("ProtobufDecodeDialog.FileType.Classpaths"),
 						BaseMessages.getString("System.FileType.AllFiles") });
 
 				if (dialog.open() != null) {
-					String str = dialog.getFilterPath() + System.getProperty("file.separator") + dialog.getFileName();
+					String str = dialog.getFilterPath()
+							+ System.getProperty("file.separator")
+							+ dialog.getFileName();
 					wClasspath.setText(str);
 				}
 			}
@@ -357,8 +382,10 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 	 * Copy information from the dialog fields to the meta-data input
 	 */
 	private void setData(ProtobufDecodeMeta consumerMeta) {
-		consumerMeta.setInputField(wInputField.getText());
-		consumerMeta.setClasspath(wClasspath.getText().trim().split(File.pathSeparator));
+		consumerMeta.setInputField(transMeta.environmentSubstitute(wInputField
+				.getText()));
+		consumerMeta.setClasspath(transMeta.environmentSubstitute(
+				wClasspath.getText().trim()).split(File.pathSeparator));
 		consumerMeta.setRootClass(wRootClass.getText());
 
 		int nrNonEmptyFields = wFields.nrNonEmpty();
@@ -390,27 +417,34 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements StepDialogIn
 
 	private void detectFields() {
 		try {
-			ProtobufDecoder protobufDecoder = new ProtobufDecoder(
-					wClasspath.getText().trim().split(File.pathSeparator), wRootClass.getText(), null);
+			ProtobufDecoder protobufDecoder = new ProtobufDecoder(transMeta
+					.environmentSubstitute(wClasspath.getText().trim()).split(
+							File.pathSeparator), wRootClass.getText(), null);
 			Map<String, Class<?>> fields = protobufDecoder.guessFields();
 			RowMeta rowMeta = new RowMeta();
 			for (Entry<String, Class<?>> e : fields.entrySet()) {
 				String fieldPath = e.getKey();
 				int i = fieldPath.lastIndexOf('.');
-				String fieldName = i != -1 ? fieldPath.substring(i + 1) : fieldPath;
-				rowMeta.addValueMeta(new FieldMeta(fieldName, fieldPath, KettleTypesConverter.javaToKettleType(e
-						.getValue())));
+				String fieldName = i != -1 ? fieldPath.substring(i + 1)
+						: fieldPath;
+				rowMeta.addValueMeta(new FieldMeta(fieldName, fieldPath,
+						KettleTypesConverter.javaToKettleType(e.getValue())));
 			}
-			BaseStepDialog.getFieldsFromPrevious(rowMeta, wFields, 1, new int[] { 1 }, new int[] { 3 }, -1, -1,
+			BaseStepDialog.getFieldsFromPrevious(rowMeta, wFields, 1,
+					new int[] { 1 }, new int[] { 3 }, -1, -1,
 					new TableItemInsertListener() {
-						public boolean tableItemInserted(TableItem tableItem, ValueMetaInterface v) {
+						public boolean tableItemInserted(TableItem tableItem,
+								ValueMetaInterface v) {
 							tableItem.setText(2, ((FieldMeta) v).path);
 							return true;
 						}
 					});
 		} catch (ProtobufDecoderException e) {
-			new ErrorDialog(shell, BaseMessages.getString("System.Dialog.Error.Title"),
-					Messages.getString("ProtobufDecodeDialog.ErrorDialog.ErrorDetectingFields"), e);
+			new ErrorDialog(
+					shell,
+					BaseMessages.getString("System.Dialog.Error.Title"),
+					Messages.getString("ProtobufDecodeDialog.ErrorDialog.ErrorDetectingFields"),
+					e);
 		}
 	}
 

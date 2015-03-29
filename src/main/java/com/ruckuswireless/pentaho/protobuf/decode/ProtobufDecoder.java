@@ -1,6 +1,7 @@
 package com.ruckuswireless.pentaho.protobuf.decode;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -32,8 +33,9 @@ public class ProtobufDecoder {
 	private LinkedHashMap<String, Integer> paths;
 	private FieldDefinition[] fields;
 
-	public ProtobufDecoder(String[] classpath, String rootClass, FieldDefinition[] fields)
-			throws ProtobufDecoderException {
+	public ProtobufDecoder(String[] classpath, String rootClass,
+			FieldDefinition[] fields) throws ProtobufDecoderException {
+
 		URLClassLoader classLoader;
 		try {
 			URL[] url = new URL[classpath.length];
@@ -49,14 +51,22 @@ public class ProtobufDecoder {
 			this.rootClass = classLoader.loadClass(rootClass);
 		} catch (ClassNotFoundException e) {
 			throw new ProtobufDecoderException("Can't find root class", e);
+		} finally {
+			try {
+				classLoader.close();
+			} catch (IOException e) {
+				throw new ProtobufDecoderException(e);
+			}
 		}
 
 		try {
-			this.rootParseFromMethod = this.rootClass.getDeclaredMethod("parseFrom", new Class<?>[] { byte[].class });
+			this.rootParseFromMethod = this.rootClass.getDeclaredMethod(
+					"parseFrom", new Class<?>[] { byte[].class });
 		} catch (SecurityException e) {
 			throw new ProtobufDecoderException(e);
 		} catch (NoSuchMethodException e) {
-			throw new ProtobufDecoderException("Can't setup Protocol Buffers decoder", e);
+			throw new ProtobufDecoderException(
+					"Can't setup Protocol Buffers decoder", e);
 		}
 
 		if (fields != null) {
@@ -77,22 +87,26 @@ public class ProtobufDecoder {
 	 * @return rows list
 	 * @throws ProtobufDecoderException
 	 */
-	public List<Object[]> decode(byte[] message) throws ProtobufDecoderException {
+	public List<Object[]> decode(byte[] message)
+			throws ProtobufDecoderException {
 		Message decodedMessage;
 		try {
-			decodedMessage = (Message) rootParseFromMethod.invoke(null, message);
+			decodedMessage = (Message) rootParseFromMethod
+					.invoke(null, message);
 		} catch (IllegalArgumentException e) {
 			throw new ProtobufDecoderException(e);
 		} catch (IllegalAccessException e) {
 			throw new ProtobufDecoderException(e);
 		} catch (InvocationTargetException e) {
-			throw new ProtobufDecoderException("Can't call to " + rootParseFromMethod, e.getCause());
+			throw new ProtobufDecoderException("Can't call to "
+					+ rootParseFromMethod, e.getCause());
 		}
 
 		ValueNode root = buildValuesTree(decodedMessage, "");
 		LinkedList<Object[]> result = new LinkedList<Object[]>();
 		if (root != null) {
-			produceRows(root, new LinkedList<Object[]>(), result, new HashSet<Integer>());
+			produceRows(root, new LinkedList<Object[]>(), result,
+					new HashSet<Integer>());
 		}
 		return result;
 	}
@@ -103,15 +117,19 @@ public class ProtobufDecoder {
 		List<ValueNode> children;
 	}
 
-	protected ValueNode buildValuesTree(Object root, String currentPath) throws ProtobufDecoderException {
+	protected ValueNode buildValuesTree(Object root, String currentPath)
+			throws ProtobufDecoderException {
 
 		if (root instanceof Message) {
 			Message message = (Message) root;
-			List<FieldDescriptor> fields = message.getDescriptorForType().getFields();
+			List<FieldDescriptor> fields = message.getDescriptorForType()
+					.getFields();
 			List<ValueNode> ch = new ArrayList<ValueNode>(fields.size());
 			for (FieldDescriptor field : fields) {
-				ValueNode n = buildValuesTree(message.getField(field), currentPath.length() > 0 ? currentPath + "."
-						+ field.getName() : field.getName());
+				ValueNode n = buildValuesTree(
+						message.getField(field),
+						currentPath.length() > 0 ? currentPath + "."
+								+ field.getName() : field.getName());
 				if (n != null) {
 					ch.add(n);
 				}
@@ -152,8 +170,8 @@ public class ProtobufDecoder {
 		return null;
 	}
 
-	protected void produceRows(ValueNode root, LinkedList<Object[]> rowsPool, LinkedList<Object[]> result,
-			Set<Integer> processedFields) {
+	protected void produceRows(ValueNode root, LinkedList<Object[]> rowsPool,
+			LinkedList<Object[]> result, Set<Integer> processedFields) {
 
 		if (root.fieldIdx != null) { // Field value (leaf)
 			int fieldIdx = root.fieldIdx.intValue();
@@ -204,14 +222,16 @@ public class ProtobufDecoder {
 		return fieldsMap;
 	}
 
-	private void guessFields(Map<String, Class<?>> fieldsMap, Class<?> rootClass, String prefix) {
+	private void guessFields(Map<String, Class<?>> fieldsMap,
+			Class<?> rootClass, String prefix) {
 		List<String> fields = new LinkedList<String>();
 		for (Method m : rootClass.getDeclaredMethods()) {
 			String methodName = m.getName();
 			String field = null;
 			if (methodName.startsWith("has")) {
 				field = methodName.substring(3);
-			} else if (methodName.startsWith("get") && methodName.endsWith("List") && methodName.length() > 7) {
+			} else if (methodName.startsWith("get")
+					&& methodName.endsWith("List") && methodName.length() > 7) {
 				field = methodName.substring(3, methodName.length() - 4);
 			}
 			if (field != null && !field.endsWith("OrBuilder")) {
@@ -224,11 +244,14 @@ public class ProtobufDecoder {
 			try {
 				Method getMethod;
 				try {
-					getMethod = rootClass.getDeclaredMethod("get" + val, new Class<?>[] { int.class });
+					getMethod = rootClass.getDeclaredMethod("get" + val,
+							new Class<?>[] { int.class });
 				} catch (NoSuchMethodException e) {
-					getMethod = rootClass.getDeclaredMethod("get" + val, new Class<?>[0]);
+					getMethod = rootClass.getDeclaredMethod("get" + val,
+							new Class<?>[0]);
 				}
-				String name = val.length() > 1 ? Character.toLowerCase(val.charAt(0)) + val.substring(1) : val;
+				String name = val.length() > 1 ? Character.toLowerCase(val
+						.charAt(0)) + val.substring(1) : val;
 				String path = prefix.length() > 0 ? prefix + "." + name : name;
 
 				Class<?> returnType = getMethod.getReturnType();
