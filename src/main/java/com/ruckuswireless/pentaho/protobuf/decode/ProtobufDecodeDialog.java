@@ -293,8 +293,7 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements
 				FileDialog dialog = new FileDialog(shell, SWT.OPEN);
 				dialog.setFilterExtensions(new String[] { "*.jar", "*" });
 				if (wClasspath.getText() != null) {
-					String fname = transMeta.environmentSubstitute(wClasspath
-							.getText());
+					String fname = wClasspath.getText(); // transMeta.environmentSubstitute(wClasspath.getText());
 					dialog.setFileName(fname);
 				}
 
@@ -382,10 +381,9 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements
 	 * Copy information from the dialog fields to the meta-data input
 	 */
 	private void setData(ProtobufDecodeMeta consumerMeta) {
-		consumerMeta.setInputField(transMeta.environmentSubstitute(wInputField
-				.getText()));
-		consumerMeta.setClasspath(transMeta.environmentSubstitute(
-				wClasspath.getText().trim()).split(File.pathSeparator));
+		consumerMeta.setInputField(wInputField.getText());
+		consumerMeta.setClasspath(wClasspath.getText().trim()
+				.split(File.pathSeparator));
 		consumerMeta.setRootClass(wRootClass.getText());
 
 		int nrNonEmptyFields = wFields.nrNonEmpty();
@@ -417,28 +415,33 @@ public class ProtobufDecodeDialog extends BaseStepDialog implements
 
 	private void detectFields() {
 		try {
-			ProtobufDecoder protobufDecoder = new ProtobufDecoder(transMeta
-					.environmentSubstitute(wClasspath.getText().trim()).split(
-							File.pathSeparator), wRootClass.getText(), null);
-			Map<String, Class<?>> fields = protobufDecoder.guessFields();
-			RowMeta rowMeta = new RowMeta();
-			for (Entry<String, Class<?>> e : fields.entrySet()) {
-				String fieldPath = e.getKey();
-				int i = fieldPath.lastIndexOf('.');
-				String fieldName = i != -1 ? fieldPath.substring(i + 1)
-						: fieldPath;
-				rowMeta.addValueMeta(new FieldMeta(fieldName, fieldPath,
-						KettleTypesConverter.javaToKettleType(e.getValue())));
+			ProtobufDecoder protobufDecoder = new ProtobufDecoder(
+					transMeta.environmentSubstitute(wClasspath.getText().trim()
+							.split(File.pathSeparator)), wRootClass.getText(),
+					null);
+			try {
+				Map<String, Class<?>> fields = protobufDecoder.guessFields();
+				RowMeta rowMeta = new RowMeta();
+				for (Entry<String, Class<?>> e : fields.entrySet()) {
+					String fieldPath = e.getKey();
+					int i = fieldPath.lastIndexOf('.');
+					String fieldName = i != -1 ? fieldPath.substring(i + 1)
+							: fieldPath;
+					rowMeta.addValueMeta(new FieldMeta(fieldName, fieldPath,
+							KettleTypesConverter.javaToKettleType(e.getValue())));
+				}
+				BaseStepDialog.getFieldsFromPrevious(rowMeta, wFields, 1,
+						new int[] { 1 }, new int[] { 3 }, -1, -1,
+						new TableItemInsertListener() {
+							public boolean tableItemInserted(
+									TableItem tableItem, ValueMetaInterface v) {
+								tableItem.setText(2, ((FieldMeta) v).path);
+								return true;
+							}
+						});
+			} finally {
+				protobufDecoder.dispose();
 			}
-			BaseStepDialog.getFieldsFromPrevious(rowMeta, wFields, 1,
-					new int[] { 1 }, new int[] { 3 }, -1, -1,
-					new TableItemInsertListener() {
-						public boolean tableItemInserted(TableItem tableItem,
-								ValueMetaInterface v) {
-							tableItem.setText(2, ((FieldMeta) v).path);
-							return true;
-						}
-					});
 		} catch (ProtobufDecoderException e) {
 			new ErrorDialog(
 					shell,

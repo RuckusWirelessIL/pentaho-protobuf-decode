@@ -5,7 +5,6 @@ import java.util.List;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
-import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStep;
@@ -23,8 +22,9 @@ import com.ruckuswireless.pentaho.protobuf.decode.ProtobufDecoder.ProtobufDecode
  */
 public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 
-	public ProtobufDecodeStep(StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta,
-			Trans trans) {
+	public ProtobufDecodeStep(StepMeta stepMeta,
+			StepDataInterface stepDataInterface, int copyNr,
+			TransMeta transMeta, Trans trans) {
 		super(stepMeta, stepDataInterface, copyNr, transMeta, trans);
 	}
 
@@ -34,15 +34,34 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 		ProtobufDecodeMeta meta = (ProtobufDecodeMeta) smi;
 		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
 		try {
-			data.decoder = new ProtobufDecoder(meta.getClasspath(), meta.getRootClass(), meta.getFields());
+			data.decoder = new ProtobufDecoder(
+					environmentSubstitute(meta.getClasspath()),
+					meta.getRootClass(), meta.getFields());
 		} catch (ProtobufDecoderException e) {
-			logError(Messages.getString("ProtobufDecodeStep.Init.Error", getStepname()), e);
+			logError(Messages.getString("ProtobufDecodeStep.Dispose.Error",
+					getStepname()), e);
 			return false;
 		}
 		return true;
 	}
 
-	public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
+	public void dispose(StepMetaInterface smi, StepDataInterface sdi) {
+
+		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
+		if (data.decoder != null) {
+			try {
+				data.decoder.dispose();
+			} catch (ProtobufDecoderException e) {
+				logError(Messages.getString("ProtobufDecodeStep.Init.Error",
+						getStepname()), e);
+			}
+			data.decoder = null;
+		}
+		super.dispose(smi, sdi);
+	}
+
+	public boolean processRow(StepMetaInterface smi, StepDataInterface sdi)
+			throws KettleException {
 		Object[] r = getRow();
 		if (r == null) {
 			setOutputDone();
@@ -52,27 +71,28 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 		ProtobufDecodeMeta meta = (ProtobufDecodeMeta) smi;
 		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
 
-		RowMetaInterface inputRowMeta = getInputRowMeta();
-
 		if (first) {
 			first = false;
-			data.outputRowMeta = inputRowMeta.clone();
+			data.outputRowMeta = getInputRowMeta().clone();
 			meta.getFields(data.outputRowMeta, getStepname(), null, null, this);
 
 			String inputField = environmentSubstitute(meta.getInputField());
 
 			int numErrors = 0;
 			if (Const.isEmpty(inputField)) {
-				logError(Messages.getString("ProtobufDecodeStep.Log.FieldNameIsNull")); //$NON-NLS-1$
+				logError(Messages
+						.getString("ProtobufDecodeStep.Log.FieldNameIsNull")); //$NON-NLS-1$
 				numErrors++;
 			}
-			data.inputFieldNr = inputRowMeta.indexOfValue(inputField);
+			data.inputFieldNr = getInputRowMeta().indexOfValue(inputField);
 			if (data.inputFieldNr < 0) {
-				logError(Messages.getString("ProtobufDecodeStep.Log.CouldntFindField", inputField)); //$NON-NLS-1$
+				logError(Messages.getString(
+						"ProtobufDecodeStep.Log.CouldntFindField", inputField)); //$NON-NLS-1$
 				numErrors++;
 			}
-			if (!inputRowMeta.getValueMeta(data.inputFieldNr).isBinary()) {
-				logError(Messages.getString("ProtobufDecodeStep.Log.FieldNotValid", inputField)); //$NON-NLS-1$
+			if (!getInputRowMeta().getValueMeta(data.inputFieldNr).isBinary()) {
+				logError(Messages.getString(
+						"ProtobufDecodeStep.Log.FieldNotValid", inputField)); //$NON-NLS-1$
 				numErrors++;
 			}
 			if (numErrors > 0) {
@@ -80,19 +100,23 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 				stopAll();
 				return false;
 			}
-			data.inputFieldMeta = inputRowMeta.getValueMeta(data.inputFieldNr);
+			data.inputFieldMeta = getInputRowMeta().getValueMeta(
+					data.inputFieldNr);
 		}
 
 		try {
-			byte[] message = data.inputFieldMeta.getBinary(r[data.inputFieldNr]);
+			byte[] message = data.inputFieldMeta
+					.getBinary(r[data.inputFieldNr]);
 			try {
 				List<Object[]> decodedData = data.decoder.decode(message);
 				for (Object[] d : decodedData) {
-					r = RowDataUtil.addRowData(r, inputRowMeta.size(), d);
+					r = RowDataUtil.addRowData(r, getInputRowMeta().size(), d);
 					putRow(data.outputRowMeta, r);
 					if (isRowLevel()) {
-						logRowlevel(Messages.getString("ProtobufDecodeStep.Log.OutputRow",
-								Long.toString(getLinesWritten()), data.outputRowMeta.getString(r)));
+						logRowlevel(Messages.getString(
+								"ProtobufDecodeStep.Log.OutputRow",
+								Long.toString(getLinesWritten()),
+								data.outputRowMeta.getString(r)));
 					}
 				}
 			} catch (ProtobufDecoderException e) {
@@ -100,18 +124,21 @@ public class ProtobufDecodeStep extends BaseStep implements StepInterface {
 			}
 		} catch (KettleException e) {
 			if (!getStepMeta().isDoingErrorHandling()) {
-				logError(Messages.getString("ProtobufDecodeStep.ErrorInStepRunning", e.getMessage()));
+				logError(Messages
+						.getString("ProtobufDecodeStep.ErrorInStepRunning",
+								e.getMessage()));
 				setErrors(1);
 				stopAll();
 				setOutputDone();
 				return false;
 			}
-			putError(inputRowMeta, r, 1, e.toString(), null, getStepname());
+			putError(getInputRowMeta(), r, 1, e.toString(), null, getStepname());
 		}
 		return true;
 	}
 
-	public void stopRunning(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
+	public void stopRunning(StepMetaInterface smi, StepDataInterface sdi)
+			throws KettleException {
 
 		ProtobufDecodeData data = (ProtobufDecodeData) sdi;
 		data.canceled = true;

@@ -28,6 +28,7 @@ import com.ruckuswireless.pentaho.utils.KettleTypesConverter;
 public class ProtobufDecoder {
 
 	private final Object EMPTY = new Object();
+	private URLClassLoader classLoader;
 	private Class<?> rootClass;
 	private Method rootParseFromMethod;
 	private LinkedHashMap<String, Integer> paths;
@@ -36,13 +37,17 @@ public class ProtobufDecoder {
 	public ProtobufDecoder(String[] classpath, String rootClass,
 			FieldDefinition[] fields) throws ProtobufDecoderException {
 
-		URLClassLoader classLoader;
 		try {
 			URL[] url = new URL[classpath.length];
 			for (int i = 0; i < classpath.length; ++i) {
-				url[i] = new File(classpath[i]).toURI().toURL();
+				String file = classpath[i];
+				if (file.startsWith("file://")) {
+					file = file.substring(7);
+				}
+				url[i] = new File(file).toURI().toURL();
 			}
-			classLoader = new URLClassLoader(url, getClass().getClassLoader());
+			this.classLoader = new URLClassLoader(url, getClass()
+					.getClassLoader());
 		} catch (MalformedURLException e) {
 			throw new ProtobufDecoderException(e);
 		}
@@ -51,12 +56,6 @@ public class ProtobufDecoder {
 			this.rootClass = classLoader.loadClass(rootClass);
 		} catch (ClassNotFoundException e) {
 			throw new ProtobufDecoderException("Can't find root class", e);
-		} finally {
-			try {
-				classLoader.close();
-			} catch (IOException e) {
-				throw new ProtobufDecoderException(e);
-			}
 		}
 
 		try {
@@ -75,6 +74,22 @@ public class ProtobufDecoder {
 				this.paths.put(fields[i].path, Integer.valueOf(i));
 			}
 			this.fields = fields;
+		}
+	}
+
+	/**
+	 * Disposes the decoder
+	 * 
+	 * @throws ProtobufDecoderException
+	 */
+	public void dispose() throws ProtobufDecoderException {
+		if (classLoader != null) {
+			try {
+				classLoader.close();
+			} catch (IOException e) {
+				throw new ProtobufDecoderException(e);
+			}
+			classLoader = null;
 		}
 	}
 
